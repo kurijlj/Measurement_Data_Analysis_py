@@ -7,11 +7,6 @@
 #
 # This file is part of mda (Measurement Data Analytics).
 #
-# This program uses code from Qt for Python examples of the Qt Toolkit
-# <https://doc.qt.io/qtforpython/_downloads/06ada84b04e72c9468651471cc91b026/
-# datavisualize.tar.bz2> by The Qt Company Ltd., available under a
-# 3-Clause BSD License.
-#
 # This program is free software: you can redistribute it and/or modify it under
 # the terms of the GNU General Public License as published by the Free Software
 # Foundation, either version 3 of the License, or (at your option)
@@ -27,6 +22,11 @@
 
 
 #==============================================================================
+#
+# This program uses code from Qt for Python examples of the Qt Toolkit
+# <https://doc.qt.io/qtforpython/_downloads/06ada84b04e72c9468651471cc91b026/
+# datavisualize.tar.bz2> by The Qt Company Ltd., available under a
+# 3-Clause BSD License.
 #
 # 2020-09-19 Ljubomir Kurij <kurijlj@gmail.com>
 #

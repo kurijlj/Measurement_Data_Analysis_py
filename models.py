@@ -7,11 +7,6 @@
 #
 # This file is part of mda (Measurement Data Analytics).
 #
-# This program uses code from Qt for Python examples of the Qt Toolkit
-# <https://doc.qt.io/qtforpython/_downloads/06ada84b04e72c9468651471cc91b026/
-# datavisualize.tar.bz2> by The Qt Company Ltd., available under a
-# 3-Clause BSD License.
-#
 # This program is free software: you can redistribute it and/or modify it under
 # the terms of the GNU General Public License as published by the Free Software
 # Foundation, either version 3 of the License, or (at your option)
@@ -27,6 +22,11 @@
 
 
 #==============================================================================
+#
+# This program uses code from Qt for Python examples of the Qt Toolkit
+# <https://doc.qt.io/qtforpython/_downloads/06ada84b04e72c9468651471cc91b026/
+# datavisualize.tar.bz2> by The Qt Company Ltd., available under a
+# 3-Clause BSD License.
 #
 # 2020-09-19 Ljubomir Kurij <kurijlj@gmail.com>
 #
@@ -103,7 +103,14 @@ class CustomTableModel(QAbstractTableModel):
         super().__init__()
         self._headers = None
         self._data = None
+        self._display_precision = None
         self.load_data(data_table)
+
+        # Set columns display precision (i.e. number of decimal places) when
+        # returning data for display purposes (on Qt.DisplayRole). Default
+        # value is -1 denoting to display the value as is.
+        if self._headers is not None:
+            self._display_precision = [-1] * len(self._headers)
 
     def load_data(self, data_table):
         """TODO: Put method docstring HERE.
@@ -144,7 +151,15 @@ class CustomTableModel(QAbstractTableModel):
         column = index.column()
 
         if role == Qt.DisplayRole:
+            if self._display_precision[column] > -1:
+                return '{0:.{1}f}'.format(
+                    self._data[row, column],
+                    self._display_precision[column]
+                    )
             return str(self._data[row, column])
+
+        if role == Qt.UserRole:
+            return self._data[row, column]
 
         if role == Qt.BackgroundRole:
             return QColor(Qt.white)
@@ -153,3 +168,14 @@ class CustomTableModel(QAbstractTableModel):
             return Qt.AlignRight
 
         return None
+
+    def change_display_precision(self, column, precision):
+        """TODO: Put method docstring HERE.
+        """
+
+        self._display_precision[column] = precision
+
+    def display_precision_str(self, column):
+        if self._display_precision[column] > -1:
+            return '%.{0}f'.format(self._display_precision[column])
+        return '%.2f'  # Default format string for no set dispplay precision.
