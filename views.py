@@ -76,6 +76,7 @@ from PySide2.QtWidgets import (
     QInputDialog,
     QMainWindow,
     QMenu,
+    QMessageBox,
     QSizePolicy,
     QTableView,
     QWidget
@@ -337,17 +338,28 @@ class DataViewWidget(QWidget):
         self._crt_objs['series'].attachAxis(self._crt_objs['axis_y'])
 
         # Getting the color from the QChart to use it on the QTableView.
-        self._model.color = "{}".format(
-            self._crt_objs['series'].pen().color().name()
-            )
+        # self._model.color = "{}".format(
+        #     self._crt_objs['series'].pen().color().name()
+        #     )
 
     @Slot()
     def open_horizontal_header_menu(self, pos):
+        """TODO: Put method docstring HERE.
+        """
+
         column = self._tbl_objs['horizontal_header'].logicalIndexAt(pos)
+        selected_indexes = self._tbl_objs['table_view'].selectedIndexes()
+        selected_columns = set()
+        if selected_indexes:
+            for index in selected_indexes:
+                selected_columns.add(index.column())
+        else:
+            selected_columns.add(column)
 
         context_menu = QMenu(self)
-        set_precision_action = QAction('Change Display Precision', self)
 
+        # Set precision action.
+        set_precision_action = QAction('Change Display Precision', self)
         # The only way to bundle custom data with the triggered signal is as
         # follows:
         set_precision_action.triggered.connect(
@@ -356,17 +368,32 @@ class DataViewWidget(QWidget):
                 column
                 )
             )
-
         context_menu.addAction(set_precision_action)
+
+        # Set as X axis action.
+        setx_axis_action = QAction('Set as X Axis', self)
+        setx_axis_action.triggered.connect(
+            lambda checked: self.change_x_axis(
+                checked,
+                selected_columns
+                )
+            )
+        context_menu.addAction(setx_axis_action)
+
         context_menu.addSeparator()
+
         context_menu.addAction(QAction('Remove Column', self))
+
         context_menu.popup(
-            self._tbl_objs['horizontal_header']\
+            self._tbl_objs['horizontal_header']
                     .viewport().mapToGlobal(pos)
             )
 
     @Slot()
     def open_set_precision_dialog(self, checked, column):
+        """TODO: Put method docstring HERE.
+        """
+
         # result is a tuple containing value for the input field and boolean
         # value indicating whether dialog OK or Cancel button has been hit
         # (OK == True, Cancel == False).
@@ -391,6 +418,22 @@ class DataViewWidget(QWidget):
                     self._model.display_precision_str(1)
                     )
 
+    @Slot()
+    def change_x_axis(self, checked, columns):
+        """TODO: Put method docstring HERE.
+        """
+
+        if len(columns) > 1:
+            # More than one column selected so pop up the error message dialog.
+            msgbox = QMessageBox(
+                QMessageBox.Information,
+                'Multiple Selection',
+                'Multiple columns selected while operation accepts only one.',
+                QMessageBox.Close,
+                self
+                )
+        else:
+            self._model.change_x_axis(columns.pop())
 
 # =============================================================================
 # GUI launcher

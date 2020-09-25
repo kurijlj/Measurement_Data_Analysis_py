@@ -2,7 +2,7 @@
 """TODO: Put module docstring HERE.
 """
 
-#==============================================================================
+# =============================================================================
 # Copyright (C) 2020 Ljubomir Kurij <kurijlj@gmail.com>
 #
 # This file is part of mda (Measurement Data Analytics).
@@ -18,10 +18,10 @@
 # You should have received a copy of the GNU General Public License along with
 # this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-#==============================================================================
+# =============================================================================
 
 
-#==============================================================================
+# =============================================================================
 #
 # This program uses code from Qt for Python examples of the Qt Toolkit
 # <https://doc.qt.io/qtforpython/_downloads/06ada84b04e72c9468651471cc91b026/
@@ -32,7 +32,7 @@
 #
 # * mda.py: created.
 #
-#==============================================================================
+# =============================================================================
 
 
 # ============================================================================
@@ -59,7 +59,7 @@
 
 from pandas import read_csv
 from pandas.errors import ParserError
-from PySide2.QtCore import(
+from PySide2.QtCore import (
     QAbstractTableModel,
     QModelIndex,
     Qt
@@ -67,9 +67,9 @@ from PySide2.QtCore import(
 from PySide2.QtGui import QColor
 
 
-#==============================================================================
+# =============================================================================
 # Models classes and functions
-#==============================================================================
+# =============================================================================
 
 def read_csv_data(fname, cobj=None):
     """TODO: Put function docstring HERE.
@@ -104,13 +104,23 @@ class CustomTableModel(QAbstractTableModel):
         self._headers = None
         self._data = None
         self._display_precision = None
+        self._display_colors = None
+
         self.load_data(data_table)
 
         # Set columns display precision (i.e. number of decimal places) when
         # returning data for display purposes (on Qt.DisplayRole). Default
         # value is -1 denoting to display the value as is.
         if self._headers is not None:
-            self._display_precision = [-1] * len(self._headers)
+            column_count = len(self._headers)
+            self._display_precision = [-1] * column_count
+            self._display_colors = ['#C1EBBF'] * column_count
+            # By default we set first column as x axis and we paint it as light
+            # gray.
+            self._display_colors[0] = '#CDD1D3'
+
+        # By default we set index of first column as X axis.
+        self._x_axis_index = 0
 
     def load_data(self, data_table):
         """TODO: Put method docstring HERE.
@@ -162,7 +172,7 @@ class CustomTableModel(QAbstractTableModel):
             return self._data[row, column]
 
         if role == Qt.BackgroundRole:
-            return QColor(Qt.white)
+            return QColor(self._display_colors[column])
 
         if role == Qt.TextAlignmentRole:
             return Qt.AlignRight
@@ -176,6 +186,39 @@ class CustomTableModel(QAbstractTableModel):
         self._display_precision[column] = precision
 
     def display_precision_str(self, column):
+        """TODO: Put method docstring HERE.
+        """
+
         if self._display_precision[column] > -1:
             return '%.{0}f'.format(self._display_precision[column])
         return '%.2f'  # Default format string for no set dispplay precision.
+
+    def change_display_colors(self, column, color_string='#C1EBBF'):
+        """TODO: Put method docstring HERE.
+        """
+
+        self._display_colors[column] = color_string
+
+    def display_color_str(self, column):
+        """TODO: Put method docstring HERE.
+        """
+
+        return self._display_colors[column]
+
+    def change_x_axis(self, index):
+        """TODO: Put method docstring HERE.
+        """
+
+        self._x_axis_index = index
+
+        # Reset display colors list.
+        column_count = len(self._headers)
+        self._display_colors = ['#C1EBBF'] * column_count
+        self._display_colors[index] = '#CDD1D3'
+
+    @property
+    def x_axis_index(self):
+        """TODO: Put method docstring HERE.
+        """
+
+        return self._x_axis_index
