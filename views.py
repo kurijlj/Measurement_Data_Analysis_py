@@ -343,6 +343,8 @@ class DataViewWidget(QWidget):
         """TODO: Put method docstring HERE.
         """
 
+        self.parent().update_status_bar('Changing display precision ...')
+
         # result is a tuple containing value for the input field and boolean
         # value indicating whether dialog OK or Cancel button has been hit
         # (OK == True, Cancel == False).
@@ -360,6 +362,8 @@ class DataViewWidget(QWidget):
             for column in columns:
                 self._model.change_display_precision(column, result[0])
 
+        self.parent().update_status_bar('Ready')
+
     @Slot()
     def change_x_axis(self, checked, columns):
         """TODO: Put method docstring HERE.
@@ -367,7 +371,9 @@ class DataViewWidget(QWidget):
 
         self.parent().update_status_bar('Changing X axis ...')
         if len(columns) > 1:
-            # More than one column selected so pop up the error message dialog.
+            # More than one column selected so set up status bar message and
+            # pop up the error message dialog informing the user about
+            # error.
             msg = 'Multiple columns selected while\n\
 operation accepts only one.\n\n\
 Please select only one column\n\
@@ -381,6 +387,7 @@ and run command again.'
                 self
                 )
             msgbox.exec()
+
         else:
             self._model.change_x_axis(columns.pop())
 
