@@ -149,24 +149,32 @@ class CustomTableModel(QAbstractTableModel):
         # returning data for display purposes (on Qt.DisplayRole). Default
         # value is -1 denoting to display the value as is.
         if self._headers is not None:
-            column_count = len(self._headers)
+            column_count = self._data.shape[1]
             self._display_precision = [-1] * column_count
             self._plot_on_chart = [True] * column_count
 
             self._color_map = list()
-            for column in range(self._data.shape[1]):
+            for column in range(column_count):
                 cind = color_index(column, len(_COLOR_PALETTE))
                 color = _COLOR_PALETTE[cind]
                 self._color_map.append(color)
 
-            # By default we use first column (index=0) as X axis so we map it
-            # to the gray color in the palette. We also have to exclude X
-            # axis from the chart plot stack.
-            self._plot_on_chart[0] = False
-            self._color_map[0] = _COLOR_PALETTE[0]
+            if column_count == 1:
+                # We are dealing with only one vector (colun) of data. So we
+                # row indexes as X axis and data as Y axis.
+                self._x_axis = -1  # To indicate row indexes as X axis.
+                self._y_axis = 0
 
-        # By default we set index of first column as X axis.
-        self._x_axis_index = 0
+            else:
+                # We are dealing with more than one column so we can, by default
+                # use the first column (index=0) as X axis, and the second
+                # column (index=1) as the Y axis. By default we map X axis to
+                # the gray color for distinction, and also we have to exclude
+                # column designated as the X axis from the chart plot stack.
+                self._x_axis = 0
+                self._plot_on_chart[0] = False
+                self._color_map[0] = _COLOR_PALETTE[0]
+                self._y_axis = 1
 
     def load_data(self, data_table):
         """TODO: Put method docstring HERE.
@@ -195,7 +203,15 @@ class CustomTableModel(QAbstractTableModel):
             return None
 
         if orientation == Qt.Horizontal:
-            return (self._headers)[section]
+            hdr_data = self._headers[section]
+            if section == self._x_axis:
+                # This column is mapped as the X axis so append marking in the
+                # column title.
+                hdr_data = hdr_data + ' [X]'
+            elif section == self._y_axis:
+                # This column is mapped as the Y axis ...
+                hdr_data = hdr_data + ' [Y]'
+            return hdr_data
 
         return "{}".format(section)
 
@@ -251,23 +267,38 @@ class CustomTableModel(QAbstractTableModel):
 
         # Get column index of the current X axis, put it on chart plot stack
         # and reset plot color.
-        xind = self._x_axis_index
+        xind = self._x_axis
         self._plot_on_chart[xind] = True
         cind = color_index(xind, len(_COLOR_PALETTE))
         self._color_map[xind] = _COLOR_PALETTE[cind]
 
         # Assign new X axis, remove it from the chart plot stack, and map it
         # to the X axis display color.
-        self._x_axis_index = column_index
+        self._x_axis = column_index
         self._plot_on_chart[column_index] = False
         self._color_map[column_index] = _COLOR_PALETTE[0]
 
-    @property
-    def x_axis_index(self):
+    def change_y_axis(self, column_index):
         """TODO: Put method docstring HERE.
         """
 
-        return self._x_axis_index
+        self._y_axis = column_index
+        # Ensure that column marke as Y axis is beeing plotted on the chart.
+        self._plot_on_chart[column_index] = True
+
+    @property
+    def x_axis(self):
+        """TODO: Put method docstring HERE.
+        """
+
+        return self._x_axis
+
+    @property
+    def y_axis(self):
+        """TODO: Put method docstring HERE.
+        """
+
+        return self._y_axis
 
     @property
     def plot_stack(self):

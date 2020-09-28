@@ -275,7 +275,7 @@ class DataViewWidget(QWidget):
         """TODO: Put method docstring HERE.
         """
 
-        xind = self._model.x_axis_index
+        xind = self._model.x_axis
         for plottable in self._model.plot_stack:
             series = QtCharts.QLineSeries()
             series.setName(self._model.headerData(
@@ -321,12 +321,19 @@ class DataViewWidget(QWidget):
 
         # Set as X axis action.
         setx_axis_action = QAction('Set as X Axis', self)
-        setx_axis_action.triggered.connect(
-            lambda checked: self.change_x_axis(
-                checked,
-                selected_columns
+        if self._model.columnCount() < 2\
+        or self._model.x_axis in selected_columns:
+            # We have only one column so we can't use it as X axis, or selected
+            # columnis already mapped as X axis.
+            setx_axis_action.setEnabled(False)
+        else:
+            setx_axis_action.triggered.connect(
+                lambda checked: self.change_x_axis(
+                    checked,
+                    selected_columns
+                    )
                 )
-            )
+
         context_menu.addAction(setx_axis_action)
 
         context_menu.addSeparator()
