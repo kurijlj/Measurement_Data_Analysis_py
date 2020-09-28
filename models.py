@@ -64,12 +64,48 @@ from PySide2.QtCore import (
     QModelIndex,
     Qt
     )
-from PySide2.QtGui import QColor
+from PySide2.QtGui import (
+    QColor,
+    QPen
+    )
+
+
+# =============================================================================
+# Module level constants
+# =============================================================================
+
+# First color in the palette (gray) is reserved for the current X axis
+# background painting.
+_COLOR_PALETTE = [
+    QColor(169, 169, 169, 255), QColor(0, 255, 255, 255),
+    QColor(127, 255, 212, 255), QColor(0, 0, 255, 255),
+    QColor(138, 43, 226, 255), QColor(165, 42, 42, 255),
+    QColor(210, 105, 30, 255), QColor(255, 127, 80, 255),
+    QColor(100, 149, 237, 255), QColor(220, 20, 60, 255),
+    QColor(0, 0, 139, 255), QColor(0, 139, 139, 255),
+    QColor(184, 134, 11, 255), QColor(0, 100, 0, 255),
+    QColor(139, 0, 139, 255), QColor(85, 107, 47, 255),
+    QColor(255, 140, 0, 255), QColor(153, 50, 204, 255),
+    QColor(139, 0, 0, 255), QColor(233, 150, 122, 255),
+    QColor(143, 188, 143, 255), QColor(72, 61, 139, 255),
+    QColor(148, 0, 211, 255), QColor(255, 20, 147, 255),
+    QColor(255, 0, 255, 255), QColor(255, 215, 0, 255),
+    QColor(0, 128, 0, 255), QColor(173, 255, 47, 255),
+    QColor(34, 139, 34, 255), QColor(75, 0, 130, 255),
+    QColor(255, 0, 0, 255)]
 
 
 # =============================================================================
 # Models classes and functions
 # =============================================================================
+
+def color_index(column_index, color_count):
+    """TODO: Put function docstring HERE.
+    """
+
+    factor = int(column_index/(color_count-1))
+    return column_index - (factor * color_count) + factor + 1
+
 
 def read_csv_data(fname, cobj=None):
     """TODO: Put function docstring HERE.
@@ -104,7 +140,8 @@ class CustomTableModel(QAbstractTableModel):
         self._headers = None
         self._data = None
         self._display_precision = None
-        self._display_colors = None
+        self._plot_on_chart = None
+        self._color_map = None
 
         self.load_data(data_table)
 
@@ -114,10 +151,19 @@ class CustomTableModel(QAbstractTableModel):
         if self._headers is not None:
             column_count = len(self._headers)
             self._display_precision = [-1] * column_count
-            self._display_colors = ['#C1EBBF'] * column_count
-            # By default we set first column as x axis and we paint it as light
-            # gray.
-            self._display_colors[0] = '#CDD1D3'
+            self._plot_on_chart = [True] * column_count
+
+            self._color_map = list()
+            for column in range(self._data.shape[1]):
+                cind = color_index(column, len(_COLOR_PALETTE))
+                color = _COLOR_PALETTE[cind]
+                self._color_map.append(color)
+
+            # By default we use first column (index=0) as X axis so we map it
+            # to the gray color in the palette. We also have to exclude X
+            # axis from the chart plot stack.
+            self._plot_on_chart[0] = False
+            self._color_map[0] = _COLOR_PALETTE[0]
 
         # By default we set index of first column as X axis.
         self._x_axis_index = 0
@@ -172,7 +218,13 @@ class CustomTableModel(QAbstractTableModel):
             return self._data[row, column]
 
         if role == Qt.BackgroundRole:
-            return QColor(self._display_colors[column])
+            # For the table background we use 50% lighter colors than original.
+            hue, sat, val, alpha = self._color_map[column].getHsv()
+            sat = int(sat * 0.3)
+            val = int(val * 1.4)
+            if val > 255:
+                val = 255
+            return QColor.fromHsv(hue, sat, val, alpha)
 
         if role == Qt.TextAlignmentRole:
             return Qt.AlignRight
@@ -193,28 +245,22 @@ class CustomTableModel(QAbstractTableModel):
             return '%.{0}f'.format(self._display_precision[column])
         return '%.2f'  # Default format string for no set dispplay precision.
 
-    def change_display_colors(self, column, color_string='#C1EBBF'):
+    def change_x_axis(self, column_index):
         """TODO: Put method docstring HERE.
         """
 
-        self._display_colors[column] = color_string
+        # Get column index of the current X axis, put it on chart plot stack
+        # and reset plot color.
+        xind = self._x_axis_index
+        self._plot_on_chart[xind] = True
+        cind = color_index(xind, len(_COLOR_PALETTE))
+        self._color_map[xind] = _COLOR_PALETTE[cind]
 
-    def display_color_str(self, column):
-        """TODO: Put method docstring HERE.
-        """
-
-        return self._display_colors[column]
-
-    def change_x_axis(self, index):
-        """TODO: Put method docstring HERE.
-        """
-
-        self._x_axis_index = index
-
-        # Reset display colors list.
-        column_count = len(self._headers)
-        self._display_colors = ['#C1EBBF'] * column_count
-        self._display_colors[index] = '#CDD1D3'
+        # Assign new X axis, remove it from the chart plot stack, and map it
+        # to the X axis display color.
+        self._x_axis_index = column_index
+        self._plot_on_chart[column_index] = False
+        self._color_map[column_index] = _COLOR_PALETTE[0]
 
     @property
     def x_axis_index(self):
@@ -222,3 +268,28 @@ class CustomTableModel(QAbstractTableModel):
         """
 
         return self._x_axis_index
+
+    @property
+    def plot_stack(self):
+        """TODO: Put method docstring HERE.
+        """
+
+        stack = list()
+        for index in range(self._data.shape[1]):
+            if self._plot_on_chart[index]:
+                stack.append(index)
+
+        return tuple(stack)
+
+    def drawing_pen(self, column):
+        """TODO: Put method docstring HERE.
+        """
+
+        pen = QPen(
+            self._color_map[column],
+            0.5,
+            Qt.SolidLine,
+            Qt.RoundCap,
+            Qt.RoundJoin
+            )
+        return pen

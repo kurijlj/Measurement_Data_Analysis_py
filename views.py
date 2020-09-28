@@ -64,8 +64,7 @@ from PySide2.QtCore import (
     )
 from PySide2.QtGui import (
     QKeySequence,
-    QPainter,
-    QPen
+    QPainter
     )
 from PySide2.QtWidgets import (
     QAction,
@@ -234,12 +233,9 @@ class DataViewWidget(QWidget):
             QtCharts.QChart.AllAnimations
             )
 
-        # TODO: Set up chart axes HERE.
-        ###############################
-
-        # Add graph to the chart.
-        #########################
-        self.add_series('Raw data', (0, 1))
+        # Adding series to the chart.
+        ##################
+        self.add_series()
 
         # Creating QChartView.
         ######################
@@ -275,72 +271,25 @@ class DataViewWidget(QWidget):
         ################################
         self.setLayout(self._lyt_objs['main_layout'])
 
-    def add_series(self, name, columns):
+    def add_series(self):
         """TODO: Put method docstring HERE.
         """
 
-        # Create QLineSeries.
-        #####################
-        self._crt_objs['series'] = QtCharts.QLineSeries()
-        self._crt_objs['series'].setName(name)
-        self._crt_objs['series'].setPen(QPen(
-            Qt.darkRed,
-            0.5,
-            Qt.SolidLine,
-            Qt.RoundCap,
-            Qt.RoundJoin
-            ))
-
-        # Filling QLineSeries.
-        ######################
-        for i in range(self._model.rowCount()):
-            # Getting the data
-            x = float(self._model.index(i, 0).data(Qt.UserRole))
-            y = float(self._model.index(i, 1).data(Qt.UserRole))
-            self._crt_objs['series'].append(x, y)
-
-        self._crt_objs['chart'].addSeries(self._crt_objs['series'])
-
-        # Setting X-axis.
-        #################
-        self._crt_objs['axis_x'] = QtCharts.QValueAxis()
-        self._crt_objs['axis_x'].setTickCount(10)
-        self._crt_objs['axis_x'].setLabelFormat(
-            self._model.display_precision_str(0)
-            )
-        self._crt_objs['axis_x'].setTitleText(self._model.headerData(
-            columns[0],
-            Qt.Horizontal,
-            Qt.DisplayRole
-            ))
-        self._crt_objs['chart'].addAxis(
-            self._crt_objs['axis_x'],
-            Qt.AlignBottom
-            )
-        self._crt_objs['series'].attachAxis(self._crt_objs['axis_x'])
-
-        # Setting Y-axis.
-        #################
-        self._crt_objs['axis_y'] = QtCharts.QValueAxis()
-        self._crt_objs['axis_y'].setTickCount(10)
-        self._crt_objs['axis_y'].setLabelFormat(
-            self._model.display_precision_str(1)
-            )
-        self._crt_objs['axis_y'].setTitleText(self._model.headerData(
-            columns[1],
-            Qt.Horizontal,
-            Qt.DisplayRole
-            ))
-        self._crt_objs['chart'].addAxis(
-            self._crt_objs['axis_y'],
-            Qt.AlignLeft
-            )
-        self._crt_objs['series'].attachAxis(self._crt_objs['axis_y'])
-
-        # Getting the color from the QChart to use it on the QTableView.
-        # self._model.color = "{}".format(
-        #     self._crt_objs['series'].pen().color().name()
-        #     )
+        xind = self._model.x_axis_index
+        for plottable in self._model.plot_stack:
+            series = QtCharts.QLineSeries()
+            series.setName(self._model.headerData(
+                plottable,
+                Qt.Horizontal,
+                Qt.DisplayRole
+                ))
+            series.setPen(self._model.drawing_pen(plottable))
+            mapper = QtCharts.QVXYModelMapper(self)
+            mapper.setXColumn(xind)
+            mapper.setYColumn(plottable)
+            mapper.setSeries(series)
+            mapper.setModel(self._model)
+            self._crt_objs['chart'].addSeries(series)
 
     @Slot()
     def open_horizontal_header_menu(self, pos):
@@ -365,7 +314,7 @@ class DataViewWidget(QWidget):
         set_precision_action.triggered.connect(
             lambda checked: self.open_set_precision_dialog(
                 checked,
-                column
+                selected_columns
                 )
             )
         context_menu.addAction(set_precision_action)
@@ -390,7 +339,7 @@ class DataViewWidget(QWidget):
             )
 
     @Slot()
-    def open_set_precision_dialog(self, checked, column):
+    def open_set_precision_dialog(self, checked, columns):
         """TODO: Put method docstring HERE.
         """
 
@@ -408,32 +357,33 @@ class DataViewWidget(QWidget):
             )
 
         if result[1]:
-            self._model.change_display_precision(column, result[0])
-            if column == 0:
-                self._crt_objs['axis_x'].setLabelFormat(
-                    self._model.display_precision_str(0)
-                    )
-            else:
-                self._crt_objs['axis_y'].setLabelFormat(
-                    self._model.display_precision_str(1)
-                    )
+            for column in columns:
+                self._model.change_display_precision(column, result[0])
 
     @Slot()
     def change_x_axis(self, checked, columns):
         """TODO: Put method docstring HERE.
         """
 
+        self.parent().update_status_bar('Changing X axis ...')
         if len(columns) > 1:
             # More than one column selected so pop up the error message dialog.
+            msg = 'Multiple columns selected while\n\
+operation accepts only one.\n\n\
+Please select only one column\n\
+and run command again.'
+            self.parent().update_status_bar('Multiple columns selected!')
             msgbox = QMessageBox(
                 QMessageBox.Information,
                 'Multiple Selection',
-                'Multiple columns selected while operation accepts only one.',
+                msg,
                 QMessageBox.Close,
                 self
                 )
+            msgbox.exec()
         else:
             self._model.change_x_axis(columns.pop())
+
 
 # =============================================================================
 # GUI launcher
