@@ -56,6 +56,7 @@
 # =============================================================================
 
 from os import getcwd
+from enum import Enum
 from os.path import basename
 from PySide2.QtCharts import QtCharts
 from PySide2.QtCore import (
@@ -86,6 +87,14 @@ import models
 # =============================================================================
 # Views classes
 # =============================================================================
+
+class Axis(Enum):
+    """TODO: Put class docstring HERE.
+    """
+
+    X = 0,
+    Y = 1
+
 
 class MainWindow(QMainWindow):
     """TODO: Put class docstring HERE.
@@ -237,6 +246,11 @@ class DataViewWidget(QWidget):
         ##################
         self.add_series()
 
+        # Adding axes to the chart.
+        ##################
+        self.add_axis(Axis.X)
+        self.add_axis(Axis.Y)
+
         # Creating QChartView.
         ######################
         self._crt_objs['chart_view'] = QtCharts.QChartView(
@@ -284,12 +298,39 @@ class DataViewWidget(QWidget):
                 Qt.DisplayRole
                 ))
             series.setPen(self._model.drawing_pen(plottable))
-            mapper = QtCharts.QVXYModelMapper(self)
-            mapper.setXColumn(xind)
-            mapper.setYColumn(plottable)
-            mapper.setSeries(series)
-            mapper.setModel(self._model)
+            for i in range(self._model.rowCount()):
+                # Getting the data
+                if xind == -1:
+                    # We are dealing with only one vector of data so use
+                    # row indexes as X axis.
+                    x = float(i)
+                else:
+                    x = float(self._model.index(i, xind).data(Qt.UserRole))
+                y = float(self._model.index(i, plottable).data(Qt.UserRole))
+                series.append(x, y)
+
             self._crt_objs['chart'].addSeries(series)
+
+    def add_axis(self, which_axis):
+        """TODO: Put method docstring HERE.
+        """
+
+        axind = self._model.x_axis
+        alignment = Qt.AlignBottom
+        if which_axis == Axis.Y:
+            axind = self._model.y_axis
+            alignment = Qt.AlignLeft
+        axis = QtCharts.QValueAxis()
+        axis.setTickCount(10)
+        axis.setLabelFormat(self._model.display_precision_str(axind))
+        axis.setTitleText(self._model.headerData(
+            axind,
+            Qt.Horizontal,
+            Qt.DisplayRole
+            ))
+        self._crt_objs['chart'].addAxis(axis, alignment)
+        for serie in self._crt_objs['chart'].series():
+            serie.attachAxis(axis)
 
     @Slot()
     def open_horizontal_header_menu(self, pos):
@@ -322,7 +363,8 @@ class DataViewWidget(QWidget):
         # Set as X axis action.
         setx_axis_action = QAction('Set as X Axis', self)
         if self._model.columnCount() < 2\
-        or self._model.x_axis in selected_columns:
+                or len(selected_columns) > 1\
+                or self._model.x_axis in selected_columns:
             # We have only one column so we can't use it as X axis, or selected
             # columnis already mapped as X axis.
             setx_axis_action.setEnabled(False)
@@ -377,26 +419,8 @@ class DataViewWidget(QWidget):
         """
 
         self.parent().update_status_bar('Changing X axis ...')
-        if len(columns) > 1:
-            # More than one column selected so set up status bar message and
-            # pop up the error message dialog informing the user about
-            # error.
-            msg = 'Multiple columns selected while\n\
-operation accepts only one.\n\n\
-Please select only one column\n\
-and run command again.'
-            self.parent().update_status_bar('Multiple columns selected!')
-            msgbox = QMessageBox(
-                QMessageBox.Information,
-                'Multiple Selection',
-                msg,
-                QMessageBox.Close,
-                self
-                )
-            msgbox.exec()
-
-        else:
-            self._model.change_x_axis(columns.pop())
+        self._model.change_x_axis(columns.pop())
+        self.parent().update_status_bar('Ready')
 
 
 # =============================================================================
