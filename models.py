@@ -163,7 +163,6 @@ class CustomTableModel(QAbstractTableModel):
                 # We are dealing with only one vector (colun) of data. So we
                 # row indexes as X axis and data as Y axis.
                 self._x_axis = -1  # To indicate row indexes as X axis.
-                self._y_axis = 0
 
             else:
                 # We are dealing with more than one column so we can, by default
@@ -174,7 +173,6 @@ class CustomTableModel(QAbstractTableModel):
                 self._x_axis = 0
                 self._plot_on_chart[0] = False
                 self._color_map[0] = _COLOR_PALETTE[0]
-                self._y_axis = 1
 
     def load_data(self, data_table):
         """TODO: Put method docstring HERE.
@@ -207,8 +205,11 @@ class CustomTableModel(QAbstractTableModel):
             if section == self._x_axis:
                 # This column is mapped as the X axis so append marking in the
                 # column title.
-                hdr_data = hdr_data + ' [X]'
-            elif section == self._y_axis:
+                if self._x_axis < 0:
+                    hdr_data = 'X'
+                else:
+                    hdr_data = hdr_data + ' [X]'
+            elif self._plot_on_chart[section]:
                 # This column is mapped as the Y axis ...
                 hdr_data = hdr_data + ' [Y]'
             return hdr_data
@@ -252,25 +253,33 @@ class CustomTableModel(QAbstractTableModel):
         """
 
         self._display_precision[column] = precision
+        self.dataChanged.emit(
+            self.index(0, column),
+            self.index(self._data.shape[0], column)
+            )
 
     def display_precision_str(self, column):
         """TODO: Put method docstring HERE.
         """
 
-        if self._display_precision[column] > -1:
+        if column < 0:
+            # We are dealing with one column data and precision string for
+            # the X axis is beeing requested.
+            return '%.1f'
+        elif self._display_precision[column] > -1:
             return '%.{0}f'.format(self._display_precision[column])
         return '%.2f'  # Default format string for no set dispplay precision.
 
-    def change_x_axis(self, new_xind):
+    def set_as_x(self, new_xind):
         """TODO: Put method docstring HERE.
         """
 
         # Get column index of the current X axis, put it on chart plot stack
         # and reset plot color.
         xind = self._x_axis
-        self._plot_on_chart[xind] = True
         cind = color_index(xind, len(_COLOR_PALETTE))
         self._color_map[xind] = _COLOR_PALETTE[cind]
+        self.toggle_plot(xind)
 
         # Assign new X axis, remove it from the chart plot stack, and map it
         # to the X axis display color.
@@ -278,29 +287,34 @@ class CustomTableModel(QAbstractTableModel):
         self._plot_on_chart[new_xind] = False
         self._color_map[new_xind] = _COLOR_PALETTE[0]
 
-        # In the case this column was already mapped to Y axis find the first
-        # column not mapped to any axis and map it to Y axis.
-        if self._y_axis == new_xind:
+        # In the case this was the last column on the plot stack we find the
+        # first column that is not mapped as X axis and put it on the
+        # polot stack.
+        if not self.plot_stack:
             for column in range(self._data.shape[1]):
                 if column != new_xind:
-                    self.change_y_axis(column)
+                    self.toggle_plot(column)
                     break
 
-    def change_y_axis(self, new_yind):
+        # Emit signal
+        self.headerDataChanged.emit(
+            Qt.Horizontal,
+            new_xind,
+            new_xind
+            )
+
+    def toggle_plot(self, cind, plot=True):
         """TODO: Put method docstring HERE.
         """
 
-        self._y_axis = new_yind
-        # Ensure that column marke as Y axis is beeing plotted on the chart.
-        self._plot_on_chart[new_yind] = True
+        self._plot_on_chart[cind] = True
 
-        # In the case this column was already mapped to X axis find the first
-        # column not mapped to any axis and map it to X axis.
-        if self._x_axis == new_yind:
-            for column in range(self._data.shape[1]):
-                if column != new_yind:
-                    self.change_x_axis(column)
-                    break
+        # Emit signal
+        self.headerDataChanged.emit(
+            Qt.Horizontal,
+            cind,
+            cind
+            )
 
     @property
     def x_axis(self):
@@ -308,13 +322,6 @@ class CustomTableModel(QAbstractTableModel):
         """
 
         return self._x_axis
-
-    @property
-    def y_axis(self):
-        """TODO: Put method docstring HERE.
-        """
-
-        return self._y_axis
 
     @property
     def plot_stack(self):

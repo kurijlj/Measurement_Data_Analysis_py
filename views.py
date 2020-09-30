@@ -151,6 +151,8 @@ class MainWindow(QMainWindow):
         """
 
         files = None
+        headers = None
+        data = None
 
         self.update_status_bar('Opening a file ...')
         dlg = QFileDialog(self)
@@ -163,11 +165,10 @@ class MainWindow(QMainWindow):
             files = dlg.selectedFiles()
             file_name = basename(files[0])
             self.update_status_bar('File selected: {0}'.format(file_name))
+            self.update_status_bar('Loading data ...')
+            headers, data = models.read_csv_data(files[0], self)
         else:
             self.update_status_bar('No file selected')
-
-        self.update_status_bar('Loading data ...')
-        headers, data = models.read_csv_data(files[0], self)
 
         if data is not None:
             data_view = DataViewWidget((headers, data))
@@ -318,7 +319,8 @@ class DataViewWidget(QWidget):
         axind = self._model.x_axis
         alignment = Qt.AlignBottom
         if which_axis == Axis.Y:
-            axind = self._model.y_axis
+            # We use first column in the plot stack to draw the y axis.
+            axind = self._model.plot_stack[0]
             alignment = Qt.AlignLeft
         axis = QtCharts.QValueAxis()
         axis.setTickCount(10)
@@ -329,6 +331,8 @@ class DataViewWidget(QWidget):
             Qt.DisplayRole
             ))
         self._crt_objs['chart'].addAxis(axis, alignment)
+
+        # Assign axis to all series on the chart.
         for serie in self._crt_objs['chart'].series():
             serie.attachAxis(axis)
 
@@ -370,7 +374,7 @@ class DataViewWidget(QWidget):
             setx_axis_action.setEnabled(False)
         else:
             setx_axis_action.triggered.connect(
-                lambda checked: self.change_x_axis(
+                lambda checked: self.set_as_x(
                     checked,
                     selected_columns
                     )
@@ -407,19 +411,47 @@ class DataViewWidget(QWidget):
             1                              # step
             )
 
+        y_rep = True  # Flag controling if Y axis has already been redrawn.
         if result[1]:
             for column in columns:
                 self._model.change_display_precision(column, result[0])
+                if result[0] and column == self._model.x_axis:
+                    self._crt_objs['chart'].removeAxis(
+                        self._crt_objs['chart'].axisX()
+                        )
+                    self.add_axis(Axis.X)
+                elif result[0] and y_rep:
+                    self._crt_objs['chart'].removeAxis(
+                        self._crt_objs['chart'].axisY()
+                        )
+                    self.add_axis(Axis.Y)
+                    y_rep = False
 
+        self.parent().update_status_bar('Changing display precision ...')
         self.parent().update_status_bar('Ready')
 
     @Slot()
-    def change_x_axis(self, checked, columns):
+    def set_as_x(self, checked, columns):
         """TODO: Put method docstring HERE.
         """
 
+        self._model.set_as_x(columns.pop())
         self.parent().update_status_bar('Changing X axis ...')
-        self._model.change_x_axis(columns.pop())
+
+        # First let remove all axes and series from the chart.
+        self._crt_objs['chart'].removeAllSeries()
+        self._crt_objs['chart'].removeAxis(
+            self._crt_objs['chart'].axisX()
+            )
+        self._crt_objs['chart'].removeAxis(
+            self._crt_objs['chart'].axisY()
+            )
+
+        # Do the chart redrawing.
+        self.add_series()
+        self.add_axis(Axis.X)
+        self.add_axis(Axis.Y)
+
         self.parent().update_status_bar('Ready')
 
 
