@@ -43,6 +43,8 @@
 #   __init__ to take only one argument a named tuple (VersionDocumentation)
 #   that would be passed and store as all relevant version documentation.
 #
+# * Implement type checking using Mypy.
+#
 # ============================================================================
 
 
@@ -58,6 +60,7 @@
 # =============================================================================
 
 from pandas import read_csv
+from collections import namedtuple
 from pandas.errors import ParserError
 from PySide2.QtCore import (
     QAbstractTableModel,
@@ -99,7 +102,11 @@ _COLOR_PALETTE = [
 # Models classes and functions
 # =============================================================================
 
-def color_index(column_index, color_count):
+# We define a custom container for passing raw table data to the custom table
+# model.
+DataSet = namedtuple('DataSet', ['headers', 'data'])
+
+def color_index(column_index: int, color_count: int):
     """TODO: Put function docstring HERE.
     """
 
@@ -107,7 +114,7 @@ def color_index(column_index, color_count):
     return column_index - (factor * color_count) + factor + 1
 
 
-def read_csv_data(fname, cobj=None):
+def read_csv_data(fname: str, cobj: Object = None):
     """TODO: Put function docstring HERE.
     """
 
@@ -135,23 +142,36 @@ class CustomTableModel(QAbstractTableModel):
     """TODO: Put class docstring HERE.
     """
 
-    def __init__(self, data_table=None):
+    def __init__(self, data_set: DataSet = DataSet(None, None)):
         super().__init__()
-        self._headers = None
-        self._data = None
-        self._display_precision = None
-        self._plot_on_chart = None
-        self._color_map = None
+        self._data_set = DataSet(None, None)  # Holds raw table data
+        self._display_precision = None  # Holds list mapping column indexes to
+        # the preffered display precision (decimal places) for the column with
+        # a given index. Value of -1 indicates to use default setting (as is in
+        # the table and withtwo decimal places on the chart) for displaying
+        # column values.
+        self._plot = None  # Holds list of boolean values indicating whether
+        # the column with given index should be plotted on the chart or not.
+        self._color_map = None  # Holds list mapping column indexes to the
+        # preset color used for displaying column background and plotting
+        # column values on the chart.
 
-        self.load_data(data_table)
+        # Since objects of this class are instantiated from the main window
+        # we assume that main window is providing appropriately formatted data
+        # i.e. a tuple or a list consisting of the list containing column
+        # headers, and a numpy array containing actual column values (i.e.
+        # data table).
+
+        self._data_set = data_set
 
         # Set columns display precision (i.e. number of decimal places) when
         # returning data for display purposes (on Qt.DisplayRole). Default
-        # value is -1 denoting to display the value as is.
-        if self._headers is not None:
-            column_count = self._data.shape[1]
+        # value is -1 denoting to display the value as is in the data table
+        # and with two decimal places on the chart.
+        if self._data_set.data is not None:
+            column_count = self._data_set.data.shape[1]
             self._display_precision = [-1] * column_count
-            self._plot_on_chart = [True] * column_count
+            self._plot = [True] * column_count
 
             self._color_map = list()
             for column in range(column_count):
@@ -160,38 +180,75 @@ class CustomTableModel(QAbstractTableModel):
                 self._color_map.append(color)
 
             if column_count == 1:
-                # We are dealing with only one vector (colun) of data. So we
-                # row indexes as X axis and data as Y axis.
-                self._x_axis = -1  # To indicate row indexes as X axis.
+                # We are dealing with only one vector (column) of data. So we
+                # set row indexes as X axis and given column values as Y axis.
+                self._x_axis = -1  # To indicate that we use row indexes
+                # for the X axis.
 
             else:
-                # We are dealing with more than one column so we can, by default
-                # use the first column (index=0) as X axis, and the second
-                # column (index=1) as the Y axis. By default we map X axis to
-                # the gray color for distinction, and also we have to exclude
-                # column designated as the X axis from the chart plot stack.
+                # We are dealing with more than one column so we can,
+                # by default use the first column (index=0) as X axis, and
+                # the second column (index=1) as the Y axis. By default we map
+                # X axis to the gray color for distinction, and also we have to
+                # exclude column designated as the X axis from the
+                # chart plot stack.
                 self._x_axis = 0
-                self._plot_on_chart[0] = False
+                self._plot[0] = False
                 self._color_map[0] = _COLOR_PALETTE[0]
-
-    def load_data(self, data_table):
-        """TODO: Put method docstring HERE.
-        """
-
-        self._headers = data_table[0]
-        self._data = data_table[1]
 
     def rowCount(self, parent=QModelIndex()):
         """TODO: Put method docstring HERE.
         """
 
-        return self._data.shape[0]
+        result = 0
+
+        if self._data_set.data is not None:
+            result =  self._data_set.data.shape[0]
+
+        return result
 
     def columnCount(self, parent=QModelIndex()):
         """TODO: Put method docstring HERE.
         """
 
-        return self._data.shape[1]
+        result = 0
+
+        if self._data_set.data is not None:
+            result = self._data_set.data.shape[1]
+
+        return result
+
+    def _headerString(self, section):
+        """TODO: Put method docstring HERE.
+        """
+
+        header_string = '{}'.format(section)
+
+        if section < 0:
+            # The only time when column index is less than zero is in the case
+            # we are dealing with one column data set, so we simply return 'X'
+            # as the column header.
+            header_string = 'X'
+            return header_string
+
+        if self._data_set.headers is None:
+            # Headers are not set for some reason, but table data may still
+            # exist. Check if requested section is header of the X axis.
+            if section == self._x_axis:
+                # Section is header for the X axis so append additional marking
+                # designating we are displaying data for the X axis.
+                header_string = header_string + ' [X]'
+                return header_string
+
+            if self._plot[section]:
+                # Section is header for the column designated to be plotted on
+                # the chart, so append additional marking designating we are
+                # displaying data to be plotted on the chart.
+                header_string = header_string + ' [Y]'
+                return header_string
+
+        if self._data_set.headers[section] is None:
+            # Headers are set ... 
 
     def headerData(self, section, orientation, role):
         """TODO: Put method docstring HERE.
@@ -200,21 +257,42 @@ class CustomTableModel(QAbstractTableModel):
         if role != Qt.DisplayRole:
             return None
 
+        hdr_data = "{}".format(section)
+
         if orientation == Qt.Horizontal:
-            hdr_data = self._headers[section]
+            # By default if column is not designated as X axis, nor for
+            # plotting on the chart we simply return column header.
+            if self._data_set.headers is not None:
+                # We have headers loaded ...
+                if self._data_set.headers[section] is not None
+                    # and section header data is not None (just a basic
+                    # sanity check).
+                    hdr_data = self._data_set.headers[section]
+
             if section == self._x_axis:
-                # This column is mapped as the X axis so append marking in the
-                # column title.
+                # Header data for the X axis is beeing requested so we
+                # append aditional markings designating that we are displaying
+                # data for the X axis.
                 if self._x_axis < 0:
+                    # This is the case of the one column data table, and X axis
+                    # data is generated out of row indexes. In this case we
+                    # also have to generate header data out of nothing
+                    # so we simply return string 'X' for the column header.
                     hdr_data = 'X'
                 else:
                     hdr_data = hdr_data + ' [X]'
-            elif self._plot_on_chart[section]:
-                # This column is mapped as the Y axis ...
+            elif self._plot[section]:
+                # Header data for the column designated for plotting on the
+                # chart is beeing requested so we append aditional markings
+                # designating that we are displaying data for the column that
+                # should be plotted on the chart.
                 hdr_data = hdr_data + ' [Y]'
+
             return hdr_data
 
-        return "{}".format(section)
+        # If display orintation for the header data is not horizontal we simply
+        # return column index as the header data.
+        return hdr_data
 
     def data(self, index, role=Qt.DisplayRole):
         """TODO: Put method docstring HERE.
@@ -224,41 +302,64 @@ class CustomTableModel(QAbstractTableModel):
         column = index.column()
 
         if role == Qt.DisplayRole:
+            # String representation of the value for the cell with the given
+            # indexes is beeing requested. By default we return string
+            # representation of the raw value. If deiplay precision for the
+            # cell's column is set then return formatted cell walue according
+            # to display precision setting.
+            value_string = '{}'.format(self._data_set.data[row, column])
+
             if self._display_precision[column] > -1:
-                return '{0:.{1}f}'.format(
-                    self._data[row, column],
+                value_string = '{0:.{1}f}'.format(
+                    self._data_set.data[row, column],
                     self._display_precision[column]
                     )
-            return str(self._data[row, column])
 
-        if role == Qt.UserRole:
-            return self._data[row, column]
+            return value_string
 
         if role == Qt.BackgroundRole:
-            # For the table background we use 50% lighter colors than original.
+            # Background color for painting cells backgroun is beeing
+            # requested. For painting cell's background we use color mapped to
+            # the cell's column but wiht slightly lighter tone for better
+            # readability of the table data. We achieve this by modifying hue
+            # and value of the mapped color.
             hue, sat, val, alpha = self._color_map[column].getHsv()
             sat = int(sat * 0.3)
             val = int(val * 1.4)
             if val > 255:
+                # If we get values greater than 255 we are overflowing and
+                # constructor will return the error, so we have to reduce value
+                # down to 255.
                 val = 255
+
             return QColor.fromHsv(hue, sat, val, alpha)
 
         if role == Qt.TextAlignmentRole:
-            return Qt.AlignRight
+            # Cell text alignment is beeing requested. So far we are using
+            # default alignment setting.
+            return Qt.AlignLeft
 
+        if role == Qt.UserRole:
+            # We use UserRole to return tables raw values.
+            return self._data_set.data[row, column]
+
+        # Unknown role uspplied so return None.
         return None
 
-    def change_display_precision(self, column, precision):
+    def setDisplayPrecision(self, column, precision):
         """TODO: Put method docstring HERE.
         """
 
         self._display_precision[column] = precision
+
+        # Send signal to display controls that data display format has been
+        # changed.
         self.dataChanged.emit(
             self.index(0, column),
-            self.index(self._data.shape[0], column)
+            self.index(self._data_set.data.shape[0], column)
             )
 
-    def display_precision_str(self, column):
+    def displayPrecisionString(self, column):
         """TODO: Put method docstring HERE.
         """
 
@@ -270,7 +371,7 @@ class CustomTableModel(QAbstractTableModel):
             return '%.{0}f'.format(self._display_precision[column])
         return '%.2f'  # Default format string for no set dispplay precision.
 
-    def set_as_x(self, new_xind):
+    def setX(self, new_xind):
         """TODO: Put method docstring HERE.
         """
 
@@ -284,14 +385,14 @@ class CustomTableModel(QAbstractTableModel):
         # Assign new X axis, remove it from the chart plot stack, and map it
         # to the X axis display color.
         self._x_axis = new_xind
-        self._plot_on_chart[new_xind] = False
+        self._plot[new_xind] = False
         self._color_map[new_xind] = _COLOR_PALETTE[0]
 
         # In the case this was the last column on the plot stack we find the
         # first column that is not mapped as X axis and put it on the
         # polot stack.
         if not self.plot_stack:
-            for column in range(self._data.shape[1]):
+            for column in range(self._data_set.data.shape[1]):
                 if column != new_xind:
                     self.toggle_plot(column)
                     break
@@ -307,13 +408,13 @@ class CustomTableModel(QAbstractTableModel):
         """TODO: Put method docstring HERE.
         """
 
-        self._plot_on_chart[cind] = plot
+        self._plot[cind] = plot
 
-    def plot_on_chart(self, cind):
+    def plot(self, cind):
         """TODO: Put method docstring HERE.
         """
 
-        return self._plot_on_chart[cind]
+        return self._plot[cind]
 
     @property
     def x_axis(self):
@@ -328,8 +429,8 @@ class CustomTableModel(QAbstractTableModel):
         """
 
         stack = list()
-        for index in range(self._data.shape[1]):
-            if self._plot_on_chart[index]:
+        for index in range(self._data_set.data.shape[1]):
+            if self._plot[index]:
                 stack.append(index)
 
         return tuple(stack)

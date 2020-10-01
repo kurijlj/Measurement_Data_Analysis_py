@@ -41,6 +41,8 @@
 #
 # * Add separate method to DataViewWidget for initializing chart axes.
 #
+# * Implement type checking using Mypy.
+#
 # ============================================================================
 
 
@@ -171,7 +173,7 @@ class MainWindow(QMainWindow):
             self.update_status_bar('No file selected')
 
         if data is not None:
-            data_view = DataViewWidget((headers, data))
+            data_view = DataViewWidget(models.DataSet(headers, data))
             self.setCentralWidget(data_view)
             self.update_status_bar('Ready')
 
@@ -196,7 +198,7 @@ class DataViewWidget(QWidget):
     """TODO: Put class docstring HERE.
     """
 
-    def __init__(self, data):
+    def __init__(self, data_set):
         super().__init__()
 
         # Initialize the widget containers.
@@ -205,7 +207,7 @@ class DataViewWidget(QWidget):
         self._crt_objs = dict()  # Chart view related objects.
 
         # Get the Model.
-        self._model = models.CustomTableModel(data)
+        self._model = models.CustomTableModel(data_set)
 
         # Create a QTableView.
         ######################
@@ -324,7 +326,7 @@ class DataViewWidget(QWidget):
             alignment = Qt.AlignLeft
         axis = QtCharts.QValueAxis()
         axis.setTickCount(10)
-        axis.setLabelFormat(self._model.display_precision_str(axind))
+        axis.setLabelFormat(self._model.displayPrecisionString(axind))
         axis.setTitleText(self._model.headerData(
             axind,
             Qt.Horizontal,
@@ -374,7 +376,7 @@ class DataViewWidget(QWidget):
             setx_axis_action.setEnabled(False)
         else:
             setx_axis_action.triggered.connect(
-                lambda checked: self.set_as_x(
+                lambda checked: self.setX(
                     checked,
                     selected_columns
                     )
@@ -430,7 +432,7 @@ class DataViewWidget(QWidget):
         y_rep = True  # Flag controling if Y axis has already been redrawn.
         if result[1]:
             for column in columns:
-                self._model.change_display_precision(column, result[0])
+                self._model.setDisplayPrecision(column, result[0])
                 if result[0] and column == self._model.x_axis:
                     self._crt_objs['chart'].removeAxis(
                         self._crt_objs['chart'].axisX()
@@ -447,11 +449,11 @@ class DataViewWidget(QWidget):
         self.parent().update_status_bar('Ready')
 
     @Slot()
-    def set_as_x(self, checked, columns):
+    def setX(self, checked, columns):
         """TODO: Put method docstring HERE.
         """
 
-        self._model.set_as_x(columns.pop())
+        self._model.setX(columns.pop())
         self.parent().update_status_bar('Changing X axis ...')
 
         # First let remove all axes and series from the chart.
