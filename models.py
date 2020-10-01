@@ -307,14 +307,13 @@ class CustomTableModel(QAbstractTableModel):
         """TODO: Put method docstring HERE.
         """
 
-        self._plot_on_chart[cind] = True
+        self._plot_on_chart[cind] = plot
 
-        # Emit signal
-        self.headerDataChanged.emit(
-            Qt.Horizontal,
-            cind,
-            cind
-            )
+    def plot_on_chart(self, cind):
+        """TODO: Put method docstring HERE.
+        """
+
+        return self._plot_on_chart[cind]
 
     @property
     def x_axis(self):

@@ -370,7 +370,7 @@ class DataViewWidget(QWidget):
                 or len(selected_columns) > 1\
                 or self._model.x_axis in selected_columns:
             # We have only one column so we can't use it as X axis, or selected
-            # columnis already mapped as X axis.
+            # column have already been mapped as X axis.
             setx_axis_action.setEnabled(False)
         else:
             setx_axis_action.triggered.connect(
@@ -379,8 +379,24 @@ class DataViewWidget(QWidget):
                     selected_columns
                     )
                 )
-
         context_menu.addAction(setx_axis_action)
+
+        # Set plot switch action.
+        toggle_plot_action = QAction('Plot', self)
+        if self._model.columnCount() < 3\
+                or self._model.x_axis in selected_columns:
+            # We have only one column so we can't toggle plot off (we need that
+            # data on the graph, or column is mapped as X axis (again we can't
+            # toggle plot on or off).
+            toggle_plot_action.setEnabled(False)
+        else:
+            toggle_plot_action.triggered.connect(
+                lambda checked: self.toggle_plot(
+                    checked,
+                    selected_columns
+                    )
+                )
+        context_menu.addAction(toggle_plot_action)
 
         context_menu.addSeparator()
 
@@ -451,6 +467,47 @@ class DataViewWidget(QWidget):
         self.add_series()
         self.add_axis(Axis.X)
         self.add_axis(Axis.Y)
+
+        self.parent().update_status_bar('Ready')
+
+    @Slot()
+    def toggle_plot(self, checked, columns):
+        """TODO: Put method docstring HERE.
+        """
+
+        self.parent().update_status_bar('Updating plot ...')
+
+        for column in columns:
+            plot = not self._model.plot_on_chart(column)
+            series_name = self._model.headerData(
+                column,
+                Qt.Horizontal,
+                Qt.DisplayRole
+                )
+            self._model.toggle_plot(column, plot)
+
+            if plot:
+                xind = self._model.x_axis
+                series = QtCharts.QLineSeries()
+                series.setName(self._model.headerData(
+                    column,
+                    Qt.Horizontal,
+                    Qt.DisplayRole
+                    ))
+                series.setPen(self._model.drawing_pen(column))
+                for i in range(self._model.rowCount()):
+                    xval = float(self._model.index(i, xind).data(Qt.UserRole))
+                    yval = float(
+                        self._model.index(i, column).data(Qt.UserRole)
+                        )
+                    series.append(xval, yval)
+
+                self._crt_objs['chart'].addSeries(series)
+
+            else:
+                for series in self._crt_objs['chart'].series():
+                    if series_name == series.name():
+                        self._crt_objs['chart'].removeSeries(series)
 
         self.parent().update_status_bar('Ready')
 
