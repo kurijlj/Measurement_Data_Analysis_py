@@ -59,6 +59,7 @@
 # Modules import section
 # =============================================================================
 
+from numpy import ndarray
 from pandas import read_csv
 from collections import namedtuple
 from pandas.errors import ParserError
@@ -106,6 +107,22 @@ _COLOR_PALETTE = [
 # model.
 DataSet = namedtuple('DataSet', ['headers', 'data'])
 
+
+def checktype(tp, var, vardsc):
+    """Utility routine used to check if given variable (var) is of requested
+    type (tp). If not it raises TypeError exception with a appropriate message.
+    Variable description (vardsc) is used for formatting more descriptive error
+    messages when rising exceptions.
+    """
+
+    if var is not None and type(var) is not tp:
+        raise TypeError('{0} must be {1} or NoneType, not {2}'.format(
+            vardsc,
+            tp.__name__,
+            type(var).__name__
+        ))
+
+
 def color_index(column_index: int, color_count: int):
     """TODO: Put function docstring HERE.
     """
@@ -114,7 +131,7 @@ def color_index(column_index: int, color_count: int):
     return column_index - (factor * color_count) + factor + 1
 
 
-def read_csv_data(fname: str, cobj: Object = None):
+def read_csv_data(fname: str, cobj=None):
     """TODO: Put function docstring HERE.
     """
 
@@ -144,7 +161,6 @@ class CustomTableModel(QAbstractTableModel):
 
     def __init__(self, data_set: DataSet = DataSet(None, None)):
         super().__init__()
-        self._data_set = DataSet(None, None)  # Holds raw table data
         self._display_precision = None  # Holds list mapping column indexes to
         # the preffered display precision (decimal places) for the column with
         # a given index. Value of -1 indicates to use default setting (as is in
@@ -156,20 +172,49 @@ class CustomTableModel(QAbstractTableModel):
         # preset color used for displaying column background and plotting
         # column values on the chart.
 
+        # In the case we are dealing with uninitialized instance of the class
+        # or only one vector (column) of data, we set row indexes to represent
+        # scale on the X axis and given cell (column) value(s) as Y axis. For
+        # that purpose we map value of -1 as column index to X axis to
+        # designate that we are using generic scale for the X axis.
+        self._x_axis = -1
+
         # Since objects of this class are instantiated from the main window
         # we assume that main window is providing appropriately formatted data
         # i.e. a tuple or a list consisting of the list containing column
         # headers, and a numpy array containing actual column values (i.e.
         # data table).
-
-        self._data_set = data_set
+        checktype(list, data_set.headers, 'Table header')
+        checktype(ndarray, data_set.data, 'Table data')
+        self._data_set = data_set  # Holds raw table data
 
         # Set columns display precision (i.e. number of decimal places) when
         # returning data for display purposes (on Qt.DisplayRole). Default
         # value is -1 denoting to display the value as is in the data table
         # and with two decimal places on the chart.
         if self._data_set.data is not None:
-            column_count = self._data_set.data.shape[1]
+
+            # By default we set column_count to one.
+            column_count = 1
+
+            try:
+                # Are we dealing with two dimensional data?
+                column_count = self._data_set.data.shape[1]
+            except IndexError as inderr:
+                # We are definetly dealing wiht an 1D array of data.
+                pass
+
+            # If valid types and not None are supplied for both headers and
+            # data, check if number of section in headers match number of
+            # columns in the data. If they mismatch raise the ValueError.
+            if self._data_set.headers is not None:
+                section_count = len(self._data_set.headers)
+                if section_count != column_count:
+                    raise ValueError(
+                        'Number of sections ({0}) and columns ({1}) mismatch.'
+                        .format(section_count, column_count)
+                        )
+
             self._display_precision = [-1] * column_count
             self._plot = [True] * column_count
 
@@ -179,18 +224,12 @@ class CustomTableModel(QAbstractTableModel):
                 color = _COLOR_PALETTE[cind]
                 self._color_map.append(color)
 
-            if column_count == 1:
-                # We are dealing with only one vector (column) of data. So we
-                # set row indexes as X axis and given column values as Y axis.
-                self._x_axis = -1  # To indicate that we use row indexes
-                # for the X axis.
-
-            else:
+            if column_count > 1:
                 # We are dealing with more than one column so we can,
-                # by default use the first column (index=0) as X axis, and
-                # the second column (index=1) as the Y axis. By default we map
-                # X axis to the gray color for distinction, and also we have to
-                # exclude column designated as the X axis from the
+                # by default use the first column (index=0) as X axis scale,
+                # and the second column (index=1) as the Y axis. By default we
+                # map X axis to the gray color for distinction, and also we
+                # have to exclude column designated as the X axis from the
                 # chart plot stack.
                 self._x_axis = 0
                 self._plot[0] = False
@@ -200,10 +239,11 @@ class CustomTableModel(QAbstractTableModel):
         """TODO: Put method docstring HERE.
         """
 
-        result = 0
+        # In the case table model is not initialized we return ...
+        result = 1
 
         if self._data_set.data is not None:
-            result =  self._data_set.data.shape[0]
+            result = self._data_set.data.shape[0]
 
         return result
 
@@ -211,7 +251,8 @@ class CustomTableModel(QAbstractTableModel):
         """TODO: Put method docstring HERE.
         """
 
-        result = 0
+        # In the case table model is not initialized we return ...
+        result = 1
 
         if self._data_set.data is not None:
             result = self._data_set.data.shape[1]
@@ -248,7 +289,8 @@ class CustomTableModel(QAbstractTableModel):
                 return header_string
 
         if self._data_set.headers[section] is None:
-            # Headers are set ... 
+            # Headers are set ...
+            return header_string
 
     def headerData(self, section, orientation, role):
         """TODO: Put method docstring HERE.
@@ -264,7 +306,7 @@ class CustomTableModel(QAbstractTableModel):
             # plotting on the chart we simply return column header.
             if self._data_set.headers is not None:
                 # We have headers loaded ...
-                if self._data_set.headers[section] is not None
+                if self._data_set.headers[section] is not None:
                     # and section header data is not None (just a basic
                     # sanity check).
                     hdr_data = self._data_set.headers[section]
