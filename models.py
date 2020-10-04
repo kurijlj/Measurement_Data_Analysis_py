@@ -197,12 +197,11 @@ class CustomTableModel(QAbstractTableModel):
             # By default we set column_count to one.
             column_count = 1
 
-            try:
-                # Are we dealing with two dimensional data?
+            if len(self._data_set.data.shape) > 1:
+                # We are dealing with two dimwnsional data table. So get number
+                # of columns in the table. Otherwise we are dealing with an 1D
+                # array of data so leave column_count value intact.
                 column_count = self._data_set.data.shape[1]
-            except IndexError as inderr:
-                # We are definetly dealing wiht an 1D array of data.
-                pass
 
             # If valid types and not None are supplied for both headers and
             # data, check if number of section in headers match number of
@@ -254,7 +253,14 @@ class CustomTableModel(QAbstractTableModel):
         # In the case table model is not initialized we return ...
         result = 1
 
-        if self._data_set.data is not None:
+        if self._data_set.data is not None\
+        and len(self._data_set.data.shape) > 1:
+            # Here we are excluding cases when for some reason data table isn't
+            # initialized, and we are dealing with only one column of data.
+            # If we are dealing with only one column of data shape method of
+            # the ndarray returns tuple in the form of (row_count,), and if we
+            # try to acces item with index 1 it raises index out of range
+            # exception.
             result = self._data_set.data.shape[1]
 
         return result
@@ -263,14 +269,14 @@ class CustomTableModel(QAbstractTableModel):
         """TODO: Put method docstring HERE.
         """
 
-        header_string = '{}'.format(section)
-
         if section < 0:
             # The only time when column index is less than zero is in the case
             # we are dealing with one column data set, so we simply return 'X'
             # as the column header.
             header_string = 'X'
             return header_string
+
+        header_string = '{}'.format(section)
 
         if self._data_set.headers is None:
             # Headers are not set for some reason, but table data may still
@@ -289,8 +295,39 @@ class CustomTableModel(QAbstractTableModel):
                 return header_string
 
         if self._data_set.headers[section] is None:
-            # Headers are set ...
+            # Headers are set but for some reason value of the given section
+            # is set to None. In that case we use section number for header
+            # string.
+            if section == self._x_axis:
+                # Section is header for the X axis so append additional marking
+                # designating we are displaying data for the X axis.
+                header_string = header_string + ' [X]'
+                return header_string
+
+            if self._plot[section]:
+                # Section is header for the column designated to be plotted on
+                # the chart, so append additional marking designating we are
+                # displaying data to be plotted on the chart.
+                header_string = header_string + ' [Y]'
+                return header_string
+
+        # Headers are set and section header is set.
+        header_string = '{}'.format(self._data_set.headers[section])
+
+        if section == self._x_axis:
+            # Section is header for the X axis so append additional marking
+            # designating we are displaying data for the X axis.
+            header_string = header_string + ' [X]'
             return header_string
+
+        if self._plot[section]:
+            # Section is header for the column designated to be plotted on
+            # the chart, so append additional marking designating we are
+            # displaying data to be plotted on the chart.
+            header_string = header_string + ' [Y]'
+            return header_string
+
+        return header_string
 
     def headerData(self, section, orientation, role):
         """TODO: Put method docstring HERE.
@@ -446,18 +483,21 @@ class CustomTableModel(QAbstractTableModel):
             new_xind
             )
 
+    # Rename it to changePlotStatus.
     def toggle_plot(self, cind, plot=True):
         """TODO: Put method docstring HERE.
         """
 
         self._plot[cind] = plot
 
+    # Rename it to getPlotStatus.
     def plot(self, cind):
         """TODO: Put method docstring HERE.
         """
 
         return self._plot[cind]
 
+    # Rename it to getX.
     @property
     def x_axis(self):
         """TODO: Put method docstring HERE.
@@ -465,6 +505,7 @@ class CustomTableModel(QAbstractTableModel):
 
         return self._x_axis
 
+    # This method should be removed.
     @property
     def plot_stack(self):
         """TODO: Put method docstring HERE.
@@ -477,6 +518,7 @@ class CustomTableModel(QAbstractTableModel):
 
         return tuple(stack)
 
+    # Rename it to getDrawingPen.
     def drawing_pen(self, column):
         """TODO: Put method docstring HERE.
         """
