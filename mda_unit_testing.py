@@ -209,7 +209,29 @@ class TestCustomTableModel(unittest.TestCase):
         """
 
         mdl = models.CustomTableModel(TestCustomTableModel.test_cases[0])
-        self.assertEqual(mdl._headerString(3), '3 [x]')
+        self.assertEqual(mdl._headerString(-1), 'X')
+        self.assertEqual(mdl._headerString(0), '0')
+        self.assertEqual(mdl._headerString(10), '10')
+        self.assertEqual(mdl._headerString(2525), '2525')
+        mdl = models.CustomTableModel(TestCustomTableModel.test_cases[1])
+        self.assertEqual(mdl._headerString(-1), 'X')
+        self.assertEqual(mdl._headerString(0), '0')
+        self.assertEqual(mdl._headerString(10), '10')
+        self.assertEqual(mdl._headerString(2525), '2525')
+        mdl = models.CustomTableModel(TestCustomTableModel.test_cases[2])
+        self.assertEqual(mdl._headerString(-1), 'X')
+        self.assertEqual(mdl._headerString(0), 'C1 [X]')
+        self.assertEqual(mdl._headerString(1), 'C2 [Y]')
+        self.assertEqual(mdl._headerString(2), 'C3 [Y]')
+        mdl.setX(1)
+        mdl.toggle_plot(0, False)
+        self.assertEqual(mdl._headerString(-1), 'X')
+        self.assertEqual(mdl._headerString(0), 'C1')
+        self.assertEqual(mdl._headerString(1), 'C2 [X]')
+        self.assertEqual(mdl._headerString(2), 'C3 [Y]')
+        mdl = models.CustomTableModel(TestCustomTableModel.test_cases[9])
+        self.assertEqual(mdl._headerString(-1), 'X')
+        self.assertEqual(mdl._headerString(0), 'C1 [Y]')
 
 
 # =============================================================================

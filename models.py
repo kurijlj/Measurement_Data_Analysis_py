@@ -279,6 +279,10 @@ class CustomTableModel(QAbstractTableModel):
         header_string = '{}'.format(section)
 
         if self._data_set.headers is None:
+            # Are we dealing with uninitialized object?
+            if self._data_set.data is None:
+                return header_string
+
             # Headers are not set for some reason, but table data may still
             # exist. Check if requested section is header of the X axis.
             if section == self._x_axis:
