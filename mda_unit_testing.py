@@ -67,56 +67,61 @@ import numpy as np
 # Test cases
 # =============================================================================
 
+TEST_CASES = [
+    # Uninitialized.
+    models.DataSet(None, None),
+    # Empty headers and data.
+    models.DataSet((None), (None)),
+    # Initialization with valid data set (2D data table).
+    models.DataSet(
+        ['C1', 'C2', 'C3'],
+        np.array((1, 2, 3, 4, 5, 6, 7, 8, 9)).reshape((3, 3))
+        ),
+    # Headers with one None section and tuple instead of ndarray as the
+    # data set.
+    models.DataSet(
+        ['C1', None, 'C3'],
+        (1, 2, 3, 4, 5, 6, 7, 8, 9)
+        ),
+    # Headers sections count and column count doesn't coincide.
+    models.DataSet(
+        ['C1', 'C3'],
+        np.array((1, 2, 3, 4, 5, 6, 7, 8, 9)).reshape((3, 3))
+        ),
+    # Initialization with invalid data types (int, int).
+    models.DataSet(54, 23),
+    # Initialization with invalid data types (string, int).
+    models.DataSet('Hello', 23),
+    # Initialization with invalid data types (int, string).
+    models.DataSet(54, 'Hello'),
+    # Initialization with invalid data types (string, string).
+    models.DataSet('Hello', 'Hello'),
+    # Initialization with valid data set (1D data table).
+    models.DataSet(
+        ['C1'],
+        np.array((1, 2, 3, 4, 5, 6, 7, 8, 9))
+        ),
+    # Initialization with valid data set (2D data table).
+    models.DataSet(
+        ['C1', 'C2'],
+        np.array((1, 2, 3, 4, 5, 6)).reshape((3, 2))
+        ),
+    # Initialization with valid data set (2D data table), except one
+    # headers section is set to None.
+    models.DataSet(
+        ['C1', None, 'C3'],
+        np.array((1, 2, 3, 4, 5, 6, 7, 8, 9)).reshape((3, 3))
+        ),
+    ]
+
+
+# =============================================================================
+# Unit testing classes
+# =============================================================================
+
 class TestCustomTableModel(unittest.TestCase):
     """TODO: Put class docstring HERE.
     """
-
-    test_cases = [
-        # Uninitialized.
-        models.DataSet(None, None),
-        # Empty headers and data.
-        models.DataSet((None), (None)),
-        # Initialization with valid data set (2D data table).
-        models.DataSet(
-            ['C1', 'C2', 'C3'],
-            np.array((1, 2, 3, 4, 5, 6, 7, 8, 9)).reshape((3, 3))
-            ),
-        # Headers with one None section and tuple instead of ndarray as the
-        # data set.
-        models.DataSet(
-            ['C1', None, 'C3'],
-            (1, 2, 3, 4, 5, 6, 7, 8, 9)
-            ),
-        # Headers sections count and column count doesn't coincide.
-        models.DataSet(
-            ['C1', 'C3'],
-            np.array((1, 2, 3, 4, 5, 6, 7, 8, 9)).reshape((3, 3))
-            ),
-        # Initialization with invalid data types (int, int).
-        models.DataSet(54, 23),
-        # Initialization with invalid data types (string, int).
-        models.DataSet('Hello', 23),
-        # Initialization with invalid data types (int, string).
-        models.DataSet(54, 'Hello'),
-        # Initialization with invalid data types (string, string).
-        models.DataSet('Hello', 'Hello'),
-        # Initialization with valid data set (1D data table).
-        models.DataSet(
-            ['C1'],
-            np.array((1, 2, 3, 4, 5, 6, 7, 8, 9))
-            ),
-        # Initialization with valid data set (2D data table).
-        models.DataSet(
-            ['C1', 'C2'],
-            np.array((1, 2, 3, 4, 5, 6)).reshape((3, 2))
-            ),
-        # Initialization with valid data set (2D data table), except one
-        # headers section is set to None.
-        models.DataSet(
-            ['C1', None, 'C3'],
-            np.array((1, 2, 3, 4, 5, 6, 7, 8, 9)).reshape((3, 3))
-            ),
-        ]
 
     @unittest.expectedFailure
     def initialization_type_check_valid(self):
@@ -126,11 +131,11 @@ class TestCustomTableModel(unittest.TestCase):
         """
 
         with self.assertRaises(TypeError):
-            models.CustomTableModel(TestCustomTableModel.test_cases[0])
+            models.CustomTableModel(TEST_CASES[0])
         with self.assertRaises(TypeError):
-            models.CustomTableModel(TestCustomTableModel.test_cases[1])
+            models.CustomTableModel(TEST_CASES[1])
         with self.assertRaises(TypeError):
-            models.CustomTableModel(TestCustomTableModel.test_cases[2])
+            models.CustomTableModel(TEST_CASES[2])
 
     def initialization_type_check_invalid(self):
         """Method to test initialization type checking facility for the
@@ -139,15 +144,15 @@ class TestCustomTableModel(unittest.TestCase):
         """
 
         with self.assertRaises(TypeError):
-            models.CustomTableModel(TestCustomTableModel.test_cases[3])
+            models.CustomTableModel(TEST_CASES[3])
         with self.assertRaises(TypeError):
-            models.CustomTableModel(TestCustomTableModel.test_cases[5])
+            models.CustomTableModel(TEST_CASES[5])
         with self.assertRaises(TypeError):
-            models.CustomTableModel(TestCustomTableModel.test_cases[6])
+            models.CustomTableModel(TEST_CASES[6])
         with self.assertRaises(TypeError):
-            models.CustomTableModel(TestCustomTableModel.test_cases[7])
+            models.CustomTableModel(TEST_CASES[7])
         with self.assertRaises(TypeError):
-            models.CustomTableModel(TestCustomTableModel.test_cases[8])
+            models.CustomTableModel(TEST_CASES[8])
 
     @unittest.expectedFailure
     def initialization_coincidence_check_valid(self):
@@ -157,13 +162,13 @@ class TestCustomTableModel(unittest.TestCase):
         """
 
         with self.assertRaises(ValueError):
-            models.CustomTableModel(TestCustomTableModel.test_cases[0])
+            models.CustomTableModel(TEST_CASES[0])
         with self.assertRaises(ValueError):
-            models.CustomTableModel(TestCustomTableModel.test_cases[1])
+            models.CustomTableModel(TEST_CASES[1])
         with self.assertRaises(ValueError):
-            models.CustomTableModel(TestCustomTableModel.test_cases[2])
+            models.CustomTableModel(TEST_CASES[2])
         with self.assertRaises(ValueError):
-            models.CustomTableModel(TestCustomTableModel.test_cases[3])
+            models.CustomTableModel(TEST_CASES[3])
 
     def initialization_coincidence_check_invalid(self):
         """Method to test facility for verification of headers sections number
@@ -172,53 +177,55 @@ class TestCustomTableModel(unittest.TestCase):
         """
 
         with self.assertRaises(ValueError):
-            models.CustomTableModel(TestCustomTableModel.test_cases[4])
+            models.CustomTableModel(TEST_CASES[4])
 
     def test_row_count_method(self):
         """Method to test rowCount facility of the CustomTableModel class.
         """
 
-        mdl = models.CustomTableModel(TestCustomTableModel.test_cases[0])
+        mdl = models.CustomTableModel(TEST_CASES[0])
         self.assertEqual(mdl.rowCount(), 1)
-        mdl = models.CustomTableModel(TestCustomTableModel.test_cases[1])
+        mdl = models.CustomTableModel(TEST_CASES[1])
         self.assertEqual(mdl.rowCount(), 1)
-        mdl = models.CustomTableModel(TestCustomTableModel.test_cases[2])
+        mdl = models.CustomTableModel(TEST_CASES[2])
         self.assertEqual(mdl.rowCount(), 3)
-        mdl = models.CustomTableModel(TestCustomTableModel.test_cases[9])
+        mdl = models.CustomTableModel(TEST_CASES[9])
         self.assertEqual(mdl.rowCount(), 9)
-        mdl = models.CustomTableModel(TestCustomTableModel.test_cases[10])
+        mdl = models.CustomTableModel(TEST_CASES[10])
         self.assertEqual(mdl.rowCount(), 3)
 
     def test_column_count_method(self):
         """Method to test columnCount facility of the CustomTableModel class.
         """
 
-        mdl = models.CustomTableModel(TestCustomTableModel.test_cases[0])
+        mdl = models.CustomTableModel(TEST_CASES[0])
         self.assertEqual(mdl.columnCount(), 1)
-        mdl = models.CustomTableModel(TestCustomTableModel.test_cases[1])
+        mdl = models.CustomTableModel(TEST_CASES[1])
         self.assertEqual(mdl.columnCount(), 1)
-        mdl = models.CustomTableModel(TestCustomTableModel.test_cases[2])
+        mdl = models.CustomTableModel(TEST_CASES[2])
         self.assertEqual(mdl.columnCount(), 3)
-        mdl = models.CustomTableModel(TestCustomTableModel.test_cases[9])
+        mdl = models.CustomTableModel(TEST_CASES[9])
         self.assertEqual(mdl.columnCount(), 1)
-        mdl = models.CustomTableModel(TestCustomTableModel.test_cases[10])
+        mdl = models.CustomTableModel(TEST_CASES[10])
         self.assertEqual(mdl.columnCount(), 2)
 
     def test_header_string_method(self):
         """Method to test _headerString facility of the CustomTableModel class.
         """
 
-        mdl = models.CustomTableModel(TestCustomTableModel.test_cases[0])
+        # Uninitialized class instance.
+        mdl = models.CustomTableModel(TEST_CASES[0])
         self.assertEqual(mdl._headerString(-1), 'X')
         self.assertEqual(mdl._headerString(0), '0')
         self.assertEqual(mdl._headerString(10), '10')
         self.assertEqual(mdl._headerString(2525), '2525')
-        mdl = models.CustomTableModel(TestCustomTableModel.test_cases[1])
+
+        mdl = models.CustomTableModel(TEST_CASES[1])
         self.assertEqual(mdl._headerString(-1), 'X')
         self.assertEqual(mdl._headerString(0), '0')
         self.assertEqual(mdl._headerString(10), '10')
         self.assertEqual(mdl._headerString(2525), '2525')
-        mdl = models.CustomTableModel(TestCustomTableModel.test_cases[2])
+        mdl = models.CustomTableModel(TEST_CASES[2])
         self.assertEqual(mdl._headerString(-1), 'X')
         self.assertEqual(mdl._headerString(0), 'C1 [X]')
         self.assertEqual(mdl._headerString(1), 'C2 [Y]')
@@ -229,7 +236,7 @@ class TestCustomTableModel(unittest.TestCase):
         self.assertEqual(mdl._headerString(0), 'C1')
         self.assertEqual(mdl._headerString(1), 'C2 [X]')
         self.assertEqual(mdl._headerString(2), 'C3 [Y]')
-        mdl = models.CustomTableModel(TestCustomTableModel.test_cases[9])
+        mdl = models.CustomTableModel(TEST_CASES[9])
         self.assertEqual(mdl._headerString(-1), 'X')
         self.assertEqual(mdl._headerString(0), 'C1 [Y]')
 
