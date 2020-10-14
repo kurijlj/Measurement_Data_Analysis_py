@@ -90,7 +90,7 @@ class EmptyDataset(QAbstractTableModel):
     """
 
     def __init__(self):
-        pass
+        super().__init__()
 
     def _checkColumnIndex(self, column):
         """TODO: Put method docstring here.
@@ -183,7 +183,7 @@ class EmptyDataset(QAbstractTableModel):
         self._checkColumnIndex(column)
 
         pen = QPen(
-            QColor(255, 255, 255, 255),
+            QColor(Qt.white),
             0.5,
             Qt.SolidLine,
             Qt.RoundCap,

@@ -55,8 +55,16 @@
 # Modules import section
 # =============================================================================
 
-import datasets
 import unittest
+import datasets
+from PySide2.QtCore import (
+    QAbstractItemModel,
+    Qt
+    )
+from PySide2.QtGui import (
+    QColor,
+    QPen
+    )
 
 
 # =============================================================================
@@ -77,14 +85,134 @@ class TestEmptyDataset(unittest.TestCase):
     """TODO: Put class docstring HERE.
     """
 
-    @unittest.expectedFailure
-    def changePlotStatusTestFail(self):
+    def setUp(self):
         """TODO: Put method docstring HERE.
         """
+
+        self._dataset = TEST_CASES[0]
+
+    def testPropertyX(self):
+        """TODO: Put method docstring HERE.
+        """
+
+        self.assertEqual(self._dataset.x, None)
+
+    def testChangePlotStatusIndexError(self):
+        """TODO: Put method docstring HERE.
+        """
+
         with self.assertRaises(IndexError):
-            TEST_CASES[0].changePlotStatus(-1)
+            self._dataset.changePlotStatus(-1)
         with self.assertRaises(IndexError):
-            TEST_CASES[0].changePlotStatus(1)
+            self._dataset.changePlotStatus(1)
+
+    @unittest.expectedFailure
+    def testChangePlotStatusIndexErrorFail(self):
+        """TODO: Put method docstring HERE.
+        """
+
+        with self.assertRaises(IndexError):
+            self._dataset.changePlotStatus(0)
+
+    def testColumnCount(self):
+        """TODO: Put method docstring HERE.
+        """
+
+        self.assertEqual(self._dataset.columnCount(), 1)
+
+    def testDataIndexErrorFail(self):
+        """TODO: Put method docstring HERE.
+        """
+
+        index1 = self._dataset.createIndex(-1, 0)
+        index2 = self._dataset.createIndex(1, 0)
+
+        with self.assertRaises(IndexError):
+            self._dataset.data(index1)
+
+        with self.assertRaises(IndexError):
+            self._dataset.data(index2)
+
+    def testData(self):
+        """TODO: Put method docstring HERE.
+        """
+
+        index = self._dataset.createIndex(0, 0)
+
+        self.assertEqual(self._dataset.data(index), 'None')
+        self.assertEqual(self._dataset.data(index, Qt.DisplayRole), 'None')
+        self.assertEqual(
+            self._dataset.data(index, Qt.BackgroundRole),
+            QColor(Qt.white)
+            )
+        self.assertEqual(
+            self._dataset.data(index, Qt.TextAlignmentRole),
+            Qt.AlignRight
+            )
+        self.assertEqual(self._dataset.data(index, Qt.UserRole), None)
+        self.assertEqual(self._dataset.data(index, None), None)
+
+    def testDisplayPrecisionString(self):
+        """TODO: Put method docstring HERE.
+        """
+
+        self.assertEqual(self._dataset.displayPrecisionString(0), None)
+
+    def testGetDrawingPen(self):
+        """TODO: Put method docstring HERE.
+        """
+
+        pen = QPen(
+            QColor(Qt.white),
+            0.5,
+            Qt.SolidLine,
+            Qt.RoundCap,
+            Qt.RoundJoin
+            )
+
+        self.assertEqual(self._dataset.getDrawingPen(0), pen)
+
+    def testHeaderData(self):
+        """TODO: Put method docstring HERE.
+        """
+
+        role = Qt.DisplayRole
+        orientation = Qt.Horizontal
+
+        self.assertEqual(self._dataset.headerData(0, None, None), None)
+        self.assertEqual(self._dataset.headerData(0, None, role), '0')
+        self.assertEqual(
+            self._dataset.headerData(0, orientation, role),
+            'None'
+            )
+
+    def testIsEmptyDataset(self):
+        """TODO: Put method docstring HERE.
+        """
+
+        self.assertEqual(self._dataset.isEmptyDataset(), True)
+
+    def testRowCount(self):
+        """TODO: Put method docstring HERE.
+        """
+
+        self.assertEqual(self._dataset.rowCount(), 1)
+
+    @unittest.expectedFailure
+    def testSetDisplayPrecision(self):
+        """TODO: Put method docstring HERE.
+        """
+
+        with self.assertRaises(IndexError):
+            self._dataset.setDisplayPrecision(0, 10)
+
+    @unittest.expectedFailure
+    def testSetX(self):
+        """TODO: Put method docstring HERE.
+        """
+
+        with self.assertRaises(IndexError):
+            self._dataset.setDisplayPrecision(0)
 
 
 # =============================================================================
