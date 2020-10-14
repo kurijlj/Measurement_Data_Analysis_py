@@ -66,8 +66,13 @@
 # =============================================================================
 
 from PySide2.QtCore import (
+    QAbstractTableModel,
     QModelIndex,
     Qt
+    )
+from PySide2.QtGui import (
+    QColor,
+    QPen
     )
 
 
@@ -85,8 +90,7 @@ class EmptyDataset(QAbstractTableModel):
     """
 
     def __init__(self):
-        self._headers = None
-        self._data = None
+        pass
 
     def _checkColumnIndex(self, column):
         """TODO: Put method docstring here.
@@ -114,7 +118,7 @@ class EmptyDataset(QAbstractTableModel):
         return '0'
 
     @property
-    def getX(self):
+    def x(self):
         """TODO: Put method docstring here.
         """
 
@@ -124,13 +128,13 @@ class EmptyDataset(QAbstractTableModel):
         """TODO: Put method docstring here.
         """
 
-        self._checkColumnIndex(section)
+        self._checkColumnIndex(column)
 
     def checkPlotStatus(self, column):
         """TODO: Put method docstring here.
         """
 
-        self._checkColumnIndex(section)
+        self._checkColumnIndex(column)
 
         return False
 
@@ -168,7 +172,7 @@ class EmptyDataset(QAbstractTableModel):
         """TODO: Put method docstring here.
         """
 
-        self._checkColumnIndex(section)
+        self._checkColumnIndex(column)
 
         return None
 
@@ -176,7 +180,7 @@ class EmptyDataset(QAbstractTableModel):
         """TODO: Put method docstring here.
         """
 
-        self._checkColumnIndex(section)
+        self._checkColumnIndex(column)
 
         pen = QPen(
             QColor(255, 255, 255, 255),
@@ -213,10 +217,10 @@ class EmptyDataset(QAbstractTableModel):
         """TODO: Put method docstring here.
         """
 
-        self._checkColumnIndex(section)
+        self._checkColumnIndex(column)
 
     def setX(self, new):
         """TODO: Put method docstring here.
         """
 
-        self._checkColumnIndex(section)
+        self._checkColumnIndex(new)
