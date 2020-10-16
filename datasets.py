@@ -85,6 +85,105 @@ from PySide2.QtGui import (
 # Datasets classes and functions
 # =============================================================================
 
+class DatasetTableModel(QAbstractTableModel):
+    """TODO: Put class docstring here.
+    """
+
+    def __init__(self):
+        super().__init__()
+
+    def _checkColumnIndex(self, column):
+        """TODO: Put method docstring here.
+        """
+
+        raise NotImplementedError('Override method in the derived class')
+
+    def _checkRowIndex(self, row):
+        """TODO: Put method docstring here.
+        """
+
+        raise NotImplementedError('Override method in the derived class')
+
+    def _headerString(self, column):
+        """TODO: Put method docstring here.
+        """
+
+        raise NotImplementedError('Override method in the derived class')
+
+    @property
+    def x(self):
+        """TODO: Put method docstring here.
+        """
+
+        raise NotImplementedError('Override method in the derived class')
+
+    def changePlotStatus(self, column, plot=False):
+        """TODO: Put method docstring here.
+        """
+
+        raise NotImplementedError('Override method in the derived class')
+
+    def checkPlotStatus(self, column):
+        """TODO: Put method docstring here.
+        """
+
+        raise NotImplementedError('Override method in the derived class')
+
+    def columnCount(self, parent=QModelIndex):
+        """TODO: Put method docstring here.
+        """
+
+        raise NotImplementedError('Override method in the derived class')
+
+    def data(self, index, role=Qt.DisplayRole):
+        """TODO: Put method docstring here.
+        """
+
+        raise NotImplementedError('Override method in the derived class')
+
+    def displayPrecisionString(self, column):
+        """TODO: Put method docstring here.
+        """
+
+        raise NotImplementedError('Override method in the derived class')
+
+    def getDrawingPen(self, column):
+        """TODO: Put method docstring here.
+        """
+
+        raise NotImplementedError('Override method in the derived class')
+
+    def headerData(self, section, orientation, role):
+        """TODO: Put method docstring here.
+        """
+
+        raise NotImplementedError('Override method in the derived class')
+
+    def isEmptyDataset(self):
+        """TODO: Put method docstring here.
+        """
+
+        raise NotImplementedError('Override method in the derived class')
+
+    def rowCount(self, parent=QModelIndex):
+        """TODO: Put method docstring here.
+        """
+
+        raise NotImplementedError('Override method in the derived class')
+
+    def setDisplayPrecision(self, column, precision):
+        """TODO: Put method docstring here.
+        """
+
+        raise NotImplementedError('Override method in the derived class')
+
+    def setX(self, new):
+        """TODO: Put method docstring here.
+        """
+
+        raise NotImplementedError('Override method in the derived class')
+
+
 class EmptyDataset(QAbstractTableModel):
     """TODO: Put class docstring here.
     """
